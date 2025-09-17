@@ -20,6 +20,7 @@ using namespace groov::literals;
 namespace stm32 = caisselabs::stm32;
 
 // clang-format off
+    /*
 template <stdx::ct_string BitName>
 auto wait_for_flag() {
     using stdx::literals::operator""_cts;
@@ -27,12 +28,20 @@ auto wait_for_flag() {
     return
           async::trigger_scheduler<"i2c1_ev">{}.schedule()
         | seq(groov::read(stm32::i2c1 / field))
-        //  async::continue_on(async::trigger_scheduler<"i2c1_ec">{})
-        // | seq(groov::read(stm32::i2c1 / field))
-        //   groov::read(stm32::i2c1 / field)
         | async::repeat_until([](auto v) { return v == true; })
-        //   groov::read(stm32::i2c1 / field)
-        // | async::repeat_until([](auto v) { return v == true; })
+        ;
+}
+    */
+
+template <stdx::ct_string BitName>
+auto wait_for_flag() {
+    using stdx::literals::operator""_cts;
+    constexpr auto field = groov::path<"isr"_cts, BitName>{};
+    using write_spec_t = decltype(groov::sync_read(stm32::i2c1 / "isr"_r));
+
+    return
+        async::trigger_scheduler<"i2c1_ev", write_spec_t>{}.schedule()
+        | async::repeat_until([field](auto r) { return r[field] == true; })
         ;
 }
 
@@ -49,24 +58,24 @@ auto set_brightness(std::uint8_t bright) -> async::sender auto {
             "cr2.AUTOEND"_f = groov::enable,
             "cr2.START"_f = true
           ))
-        | seq(wait_for_flag<"TXIS">())
+        | async::seq(wait_for_flag<"TXIS">())
         ;
 
     auto write_address =
-          seq(groov::write(
+        groov::write(
             stm32::i2c1(
               "txdr.TXDATA"_f = 0x19 // LED Brightness address
-          )))
-        | seq(wait_for_flag<"TXIS">())
+          ))
+        | async::seq(wait_for_flag<"TXIS">())
         ;
 
     auto write_data = 
-          seq(groov::write(
+          groov::write(
             stm32::i2c1(
               "txdr.TXDATA"_f = bright
-          )))
-        | seq(wait_for_flag<"STOPF">())
-        | seq(groov::write(
+          ))
+        | async::seq(wait_for_flag<"STOPF">())
+        | async::seq(groov::write(
             stm32::i2c1(
               "icr.STOPCF"_f = groov::set
           )))
@@ -75,8 +84,8 @@ auto set_brightness(std::uint8_t bright) -> async::sender auto {
     
     return
           setup_controller
-        | write_address
-        | write_data
+        | async::seq(write_address)
+        | async::seq(write_data)
         ;
 }
 // clang-format on

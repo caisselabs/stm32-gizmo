@@ -187,7 +187,7 @@ extern "C" {
   // When a I2C1_EV interrupt fires the interrupt vector points to this entry.
   // The actual actions for the ISR will be defined using the triggers.
   void I2C1_EV_Handler(void) {
-      // TODO: think about sending the read spec
-      async::run_triggers<"i2c1_ev">();
+      auto v = groov::sync_read(stm32::i2c1 / "isr"_r);
+      async::run_triggers<"i2c1_ev">(v);
   }
 }
