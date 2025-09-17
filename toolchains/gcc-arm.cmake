@@ -40,7 +40,8 @@ set( COMMON_FLAGS "${COMMON_FLAGS} -mtune=cortex-m4" )
 set( COMMON_FLAGS "${COMMON_FLAGS} -ffunction-sections" )
 set( COMMON_FLAGS "${COMMON_FLAGS} -fdata-sections" )
 # temporary here
-set( COMMON_FLAGS "${COMMON_FLAGS} -g -Os -flto" )
+#set( COMMON_FLAGS "${COMMON_FLAGS} -g -Os -flto" )
+set( COMMON_FLAGS "${COMMON_FLAGS} -Os -flto" )
 set( COMMON_FLAGS "${COMMON_FLAGS} -D__NO_SYSTEM_INIT" )
 
 # Set the CMAKE C flags (which should also be used by the assembler!

@@ -12,7 +12,6 @@
 
 #include <async/just.hpp>
 #include <async/repeat.hpp>
-#include <async/schedulers/trigger_scheduler.hpp>
 #include <async/sequence.hpp>
 #include <async/sync_wait.hpp>
 #include <async/then.hpp>
@@ -149,16 +148,24 @@ void setup_i2c() {
         ));
     // --------------------------------------------------------
 
-
     // i2c_reset();
-    // enable interrupts and the peripheral
-    groov::sync_write(
-        stm32::i2c1(
-            "cr1.TXIE"_f = groov::enable,
-            "cr1.STOPIE"_f = groov::enable,
-            "cr1.PE"_f = groov::enable
-        ));
+    groov::sync_write(stm32::i2c1("cr1.PE"_f = groov::enable));
 
+
+    // [x] enable the i2c clock and gpio clock
+    // [ ] configure the i2c pins for alternative functions
+    //     - select alteernative function in moder reg
+    //     - select open drain output
+    //     - select high speed for the pins
+    //     - select pull-up for both pins
+    //     - configure the alternate function in afr registeer
+    // [this is no longer cr1.swrst] reset the i2c
+    // [ ] program the peripheral input clock in i2c_cr2 registeer to generate correct timings
+    // [ ] configure the clock control registers
+    // [ ] configure the rise time register
+    // [ ] program the i2c_cr1 register to enable peripheral
+    
+    
 }
 
 void initialize_board() {
@@ -183,11 +190,38 @@ void initialize_board() {
         ));
 }
 
-extern "C" {
-  // When a I2C1_EV interrupt fires the interrupt vector points to this entry.
-  // The actual actions for the ISR will be defined using the triggers.
-  void I2C1_EV_Handler(void) {
-      // TODO: think about sending the read spec
-      async::run_triggers<"i2c1_ev">();
-  }
+
+
+void test_send(std::uint8_t bright) {
+
+    auto wait_for_byte_write =
+          groov::read(stm32::i2c1 / "isr.TXIS"_f)
+        | async::repeat_until([](auto v) { return v == true; })
+        ;
+    
+    groov::write(
+          stm32::i2c1(
+            "cr2.ADD10"_f = groov::disable,
+            "cr2.SADD7"_f = 0x6f,
+            "cr2.RD_WRN"_f = stm32::i2c::rd_wrn::WRITE_XFER,
+            "cr2.NBYTES"_f = 2,
+            "cr2.RELOAD"_f = groov::disable,
+            "cr2.AUTOEND"_f = groov::enable,
+            "cr2.START"_f = true
+          ))
+        | seq(wait_for_byte_write)
+        | seq(groov::write(
+            stm32::i2c1(
+              "txdr.TXDATA"_f = 0x19 // LED Brightness address
+          )))
+        | seq(wait_for_byte_write)
+        | seq(groov::write(
+            stm32::i2c1(
+              "txdr.TXDATA"_f = bright
+          )))
+        | async::sync_wait();
+
 }
+
+
+

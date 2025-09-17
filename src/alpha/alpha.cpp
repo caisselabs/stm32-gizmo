@@ -13,8 +13,6 @@
 // ----------------------------------------------------------------------------
 
 // a concurrency policy is needed by the async library
-// #include "button.hpp"  // spinning version
-#include "button_int.hpp"
 #include "shared/concurrency.hpp"
 #include "shared/stm32_interrupt.hpp"
 #include "shared/stm32_timer.hpp"
@@ -62,6 +60,7 @@ inline void DMA2_CH1_Handler(void) { async::task_mgr::service_tasks<0>(); }
 
 // method to initialize basic board functionality
 void initialize_board();
+void test_send(std::uint8_t); /// temp
 
 using namespace std::chrono_literals;
 using namespace groov::literals;
@@ -72,8 +71,7 @@ int main() {
   initialize_board();
   setup_interrupts();
   initialize_timer();
-
-
+  
   auto delay = [](auto v) {
       return
           async::continue_on(async::time_scheduler{v});
@@ -90,14 +88,13 @@ int main() {
       | async::seq(off_cycle)
       ;
 
-  auto s = blinky | async::repeat() | async::start_detached();
+  //auto s = blinky | async::repeat() | async::start_detached();
 
 
   std::uint8_t bright = 0x00;
   while(true) {
-      // spin little heater, spin
-        button::set_brightness(++bright)
-      | async::sync_wait();
+    // spin little heater, spin
+      test_send(++bright);
   }
 }
 
