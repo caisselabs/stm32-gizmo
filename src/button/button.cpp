@@ -14,7 +14,7 @@
 
 // a concurrency policy is needed by the async library
 // #include "button.hpp"  // spinning version
-#include "button_int.hpp"
+#include "button_int2.hpp"
 #include "shared/concurrency.hpp"
 #include "shared/stm32_interrupt.hpp"
 #include "shared/stm32_timer.hpp"
@@ -81,8 +81,8 @@ int main() {
 
   auto led_on  = groov::write(stm32::gpiob("odr.3"_f=true));
   auto led_off = groov::write(stm32::gpiob("odr.3"_f=false));
-  auto on_cycle  = led_on  | delay(1s);
-  auto off_cycle = led_off | delay(300ms);
+  auto on_cycle  = led_on  | delay(300ms);
+  auto off_cycle = led_off | delay(1s);
 
   
   async::sender auto blinky =
