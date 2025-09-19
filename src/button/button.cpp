@@ -70,7 +70,7 @@ using namespace groov::literals;
 
 using my_button_t =                              //
     sparkfun::qwiic_button::reg::qwiic_button_t< //
-        "my_button", button::button_bus<0x6f>    //
+        "my_button", button::bus<0x6f>           //
         >;
 my_button_t my_button;
 

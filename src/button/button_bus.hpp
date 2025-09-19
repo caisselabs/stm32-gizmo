@@ -77,45 +77,35 @@ auto write_last_byte = [](std::uint8_t b) {
           );
 };
 
-struct bus {
-    template <auto Mask, auto IdMask, auto IdValue>
-    static auto write(auto addr, auto value) -> async::sender auto {
-        return async::just();
-    }
-
-    template <auto Mask> static auto read(auto addr) -> async::sender auto {
-        return async::just(Mask);
-    }
-};
-
 template <std::uint8_t i2c_addr>
-struct button_bus {
+struct bus {
+
+    static constexpr auto control_spec_ =
+        stm32::i2c1(
+           "cr2.ADD10"_f = groov::disable,
+           "cr2.SADD7"_f = i2c_addr,
+           "cr2.RD_WRN"_f = stm32::i2c::rd_wrn::WRITE_XFER,
+           "cr2.NBYTES"_f = 0,
+           "cr2.RELOAD"_f = groov::disable,
+           "cr2.AUTOEND"_f = groov::enable,
+           "cr2.START"_f = true
+        );
 
     //template <stdx::ct_string RegName, auto Mask, auto IdMask, auto IdValue>
     template <auto Mask, decltype(Mask) IdMask, decltype(Mask) IdValue>
     static auto write(auto addr, decltype(Mask) data) -> async::sender auto {
 
-        //data |= IdValue;
+        data |= IdValue;
 
         constexpr std::uint8_t bytes_to_write = sizeof(data) + 1;
+        auto control_spec = control_spec_;
+        control_spec["cr2.NBYTES"_f] = bytes_to_write;
 
         auto setup_controller =
             async::when_all(
               xfer_done_or_error,
-              groov::write(
-                stm32::i2c1(
-                  "cr2.ADD10"_f = groov::disable,
-                  "cr2.SADD7"_f = i2c_addr,
-                  "cr2.RD_WRN"_f = stm32::i2c::rd_wrn::WRITE_XFER,
-                  "cr2.NBYTES"_f = bytes_to_write,
-                  "cr2.RELOAD"_f = groov::disable,
-                  "cr2.AUTOEND"_f = groov::enable,
-                  "cr2.START"_f = true
-                ))
+              groov::write(control_spec)
             );
-
-        auto control_addr =
-            setup_controller | async::seq(write_byte(addr));
 
         auto values = stdx::bit_unpack<std::uint8_t>(data);
         auto write_data =
@@ -126,7 +116,10 @@ struct button_bus {
                      |async::seq(write_last_byte(last) ));
             }, values);
 
-        return control_addr | write_data;
+        return
+            setup_controller
+            | async::seq(write_byte(addr))
+            | write_data;
     }
 
     //template <stdx::ct_string RegName, auto Mask>
