@@ -55,7 +55,7 @@ using int_cfg =
         0x04, access::rw,
         groov::field<"click_en", bool, 0, 0>,
         groov::field<"press_en", bool, 1, 1>,
-        groov::field<"reserved", bool, 7, 2, access::ro>
+        groov::field<"reserved", std::uint8_t, 7, 2, access::ro>
     >;
 
 using debounce_time =
@@ -71,7 +71,7 @@ using pressed_queue_status =
         groov::field<"full", bool, 0, 0, access::ro>,
         groov::field<"empty", bool, 1, 1, access::ro>,
         groov::field<"popRequest", bool, 2, 2>,
-        groov::field<"reserved", bool, 7, 3, access::ro>
+        groov::field<"reserved", std::uint8_t, 7, 3, access::ro>
     >;
 
 using pressed_queue_front =
@@ -93,7 +93,7 @@ using clicked_queue_status =
         groov::field<"full", bool, 0, 0, access::ro>,
         groov::field<"empty", bool, 1, 1, access::ro>,
         groov::field<"popRequest", bool, 2, 2>,
-        groov::field<"reserved", bool, 7, 3, access::ro>
+        groov::field<"reserved", std::uint8_t, 7, 3, access::ro>
     >;
 
 using clicked_queue_front =
@@ -111,7 +111,8 @@ using clicked_queue_back =
 using led_brightness =
     groov::reg<
         "led_brightness", std::uint8_t,
-        0x19, access::rw
+        0x19, access::rw,
+        groov::field<"v", std::uint8_t, 7, 0>
     >;
 
 using led_pulse_granularity =
@@ -141,24 +142,24 @@ using i2c_address =
 template <stdx::ct_string Name, typename Bus>  //std::uint8_t I2CAddr>
 using qwiic_button_t =
     groov::group<
-        Name, Bus, //groov::mmio_bus<>, //spi_bus<I2CAddr>,
+        Name, Bus,
         // id,
         // firmware_lsb,
         // firmware_msb,
         // button_status,
-        debounce_time,
-        int_cfg,
+        // debounce_time,
+        // int_cfg,
         // pressed_queue_status,
         // pressed_queue_front,
         // pressed_queue_back,
         // clicked_queue_status,
         // clicked_queue_front,
         // clicked_queue_back,
-        // led_brightness,
+        led_brightness
         // led_pulse_granularity,
         // led_pulse_on_time,
         // led_pulse_off_time,
-        i2c_address
+        //i2c_address
     >;
 
 // clang-format on

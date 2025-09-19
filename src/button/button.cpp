@@ -14,11 +14,13 @@
 
 // a concurrency policy is needed by the async library
 // #include "button.hpp"  // spinning version
-#include "button_int2.hpp"
+// #include "button_int3.hpp"
+#include "button_bus.hpp"
 #include "shared/concurrency.hpp"
 #include "shared/stm32_interrupt.hpp"
 #include "shared/stm32_timer.hpp"
 #include "shared/timer_scheduler.hpp"
+#include "sparkfun/qwiic_button/registers.hpp"
 
 #include <async/continue_on.hpp>
 #include <async/repeat.hpp>
@@ -66,6 +68,12 @@ void initialize_board();
 using namespace std::chrono_literals;
 using namespace groov::literals;
 
+using my_button_t =                              //
+    sparkfun::qwiic_button::reg::qwiic_button_t< //
+        "my_button", button::button_bus<0x6f>    //
+        >;
+my_button_t my_button;
+
 // clang-format off
 int main() {
 
@@ -81,8 +89,10 @@ int main() {
 
   auto led_on  = groov::write(stm32::gpiob("odr.3"_f=true));
   auto led_off = groov::write(stm32::gpiob("odr.3"_f=false));
-  auto on_cycle  = led_on  | delay(300ms);
-  auto off_cycle = led_off | delay(1s);
+  // auto on_cycle  = led_on  | delay(300ms);
+  // auto off_cycle = led_off | delay(1s);
+  auto on_cycle  = led_on  | delay(1s);
+  auto off_cycle = led_off | delay(300ms);
 
   
   async::sender auto blinky =
@@ -96,7 +106,10 @@ int main() {
   std::uint8_t bright = 0x00;
   while(true) {
       // spin little heater, spin
-        button::set_brightness(++bright)
+      //  button::send_command(0x19, ++bright)
+      groov::write(
+          my_button("led_brightness"_r = bright)
+        )
       | async::sync_wait();
   }
 }
