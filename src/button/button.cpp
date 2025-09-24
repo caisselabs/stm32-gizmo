@@ -108,7 +108,7 @@ int main() {
       // spin little heater, spin
       //  button::send_command(0x19, ++bright)
       groov::write(
-          my_button("led_brightness"_r = bright)
+          my_button("led_brightness"_r = ++bright)
         )
       | async::sync_wait();
   }
