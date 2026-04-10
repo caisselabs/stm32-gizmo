@@ -108,13 +108,27 @@ struct bus {
             );
 
         auto values = stdx::bit_unpack<std::uint8_t>(data);
+        // It would be nice if the following would deduce... but it won't  )o:
+        // std::apply([](auto ... v, auto last) {
+        //         return
+        //             (async::seq(write_byte(v))
+        //              | ...
+        //              |async::seq(write_last_byte(last) ));
+        //     }, values);
+        //
         auto write_data =
-            std::apply([](auto ... v, auto last) {
-                return
-                    (async::seq(write_byte(v))
-                     | ...
-                     |async::seq(write_last_byte(last) ));
-            }, values);
+            []<std::size_t N>(std::array<uint8_t,N> const & a) {
+              return []<std::size_t ... ns, std::size_t last_n>(auto const & a,
+                                                                std::index_sequence<ns...>,
+                                                                std::index_sequence<last_n>) {
+                  return
+                     (async::seq(write_byte(std::get<ns>(a)))
+                      | ...
+                      | async::seq(write_last_byte(std::get<last_n>(a)))
+                     );
+                }(a, std::make_index_sequence<N-1>{}, std::index_sequence<N-1>{});
+        }(values);
+
 
         return
             setup_controller
